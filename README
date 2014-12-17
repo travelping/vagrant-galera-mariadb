@@ -1,0 +1,4 @@
+Vagrant/docker based test-infrastructure.
+The following setups available:
+    - onehost-based Virtualbox setup with Galera MariaDB Cluster
+    - distributed Virtualbox setup with Galera MariaDB Cluster on bridged interfaces
