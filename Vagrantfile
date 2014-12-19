@@ -38,7 +38,7 @@ echo "[mysqld]
 wsrep_provider=/usr/lib/galera/libgalera_smm.so
 wsrep_cluster_name=ma_cluster
 wsrep_cluster_address="gcomm://#{node_addresses.join(',')}"
-wsrep_slave_threads=2
+wsrep_slave_threads=8
 wsrep_sst_method=rsync
 wsrep_sst_auth=galera:galera
 wsrep_node_address=#{hostaddr}" > /etc/mysql/conf.d/galera.cnf
@@ -65,7 +65,7 @@ innodb_autoinc_lock_mode=2
 query_cache_size=0
 query_cache_type=OFF
 bind-address        = 0.0.0.0
-max_connections     = 100
+max_connections     = 10000
 connect_timeout     = 5
 wait_timeout        = 600
 max_allowed_packet  = 16M
@@ -82,6 +82,7 @@ read_rnd_buffer_size    = 1M
 # * Query Cache Configuration
 query_cache_limit       = 128K
 log_warnings        = 2
+#log_error	= /var/log/mysql/error.log
 slow_query_log_file = /var/log/mysql/mariadb-slow.log
 long_query_time = 10
 #log_slow_rate_limit    = 1000
@@ -92,11 +93,11 @@ expire_logs_days    = 10
 max_binlog_size         = 100M
 default_storage_engine  = InnoDB
 #innodb_log_file_size   = 50M
-innodb_buffer_pool_size = 256M
+innodb_buffer_pool_size = 2G
 innodb_log_buffer_size  = 8M
 innodb_file_per_table   = 1
-innodb_open_files   = 400
-innodb_io_capacity  = 400
+innodb_open_files   = 1000
+innodb_io_capacity  = 1000
 innodb_flush_method = O_DIRECT
 [mysqldump]
 quick
