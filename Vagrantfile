@@ -147,7 +147,10 @@ Vagrant.configure("2") do |config|
     config.ssh.username = "vagrant"
     config.ssh.password = "vagrant"
     config.ssh.shell = "bash -c 'BASH_ENV=/etc/profile exec bash'"
-
+    config.vm.provider "virtualbox" do |v|
+      v.memory = 4096
+      v.cpus = 4
+    end
     if Vagrant.has_plugin?("vagrant-cachier")
         config.cache.scope = :box
         config.cache.enable :apt
