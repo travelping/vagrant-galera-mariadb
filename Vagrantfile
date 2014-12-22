@@ -66,6 +66,7 @@ query_cache_size=0
 query_cache_type=OFF
 bind-address        = 0.0.0.0
 max_connections     = 10000
+max_connect_errors  = 10000
 connect_timeout     = 5
 wait_timeout        = 600
 max_allowed_packet  = 16M
