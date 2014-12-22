@@ -83,7 +83,7 @@ read_rnd_buffer_size    = 1M
 # * Query Cache Configuration
 query_cache_limit       = 128K
 log_warnings        = 2
-#log_error	= /var/log/mysql/error.log
+log_error	= /var/log/mysql/error.log
 slow_query_log_file = /var/log/mysql/mariadb-slow.log
 long_query_time = 10
 #log_slow_rate_limit    = 1000
