@@ -38,7 +38,7 @@ echo "[mysqld]
 wsrep_provider=/usr/lib/galera/libgalera_smm.so
 wsrep_cluster_name=ma_cluster
 wsrep_cluster_address="gcomm://#{node_addresses.join(',')}"
-wsrep_slave_threads=8
+wsrep_slave_threads=2
 wsrep_sst_method=rsync
 wsrep_sst_auth=galera:galera
 wsrep_node_address=#{hostaddr}" > /etc/mysql/conf.d/galera.cnf
@@ -121,6 +121,7 @@ socket   = /var/run/mysqld/mysqld.sock
 basedir  = /usr" > /etc/mysql/debian.cnf
 
 mysql -u root -proot -e 'GRANT ALL PRIVILEGES on *.* TO "debian-sys-maint"@'localhost' IDENTIFIED BY "some_pwd" WITH GRANT OPTION; FLUSH PRIVILEGES;'
+mysql -u root -proot -e 'CREATE DATABASE tetete;'
 
 sudo service mysql stop
 sleep 5
@@ -149,7 +150,7 @@ Vagrant.configure("2") do |config|
     config.ssh.shell = "bash -c 'BASH_ENV=/etc/profile exec bash'"
     config.vm.provider "virtualbox" do |v|
       v.memory = 4096
-      v.cpus = 4
+      v.cpus = 1
     end
     if Vagrant.has_plugin?("vagrant-cachier")
         config.cache.scope = :box
