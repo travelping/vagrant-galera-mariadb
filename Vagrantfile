@@ -26,20 +26,28 @@ end
 def provision_node(hostaddr, node_addresses)
     setup = <<-SCRIPT
 sudo apt-get  -q -y update
-sudo apt-get  -q -y install python-software-properties vim curl wget rsync tmux
+sudo apt-get  -q -y install python-software-properties vim curl wget tmux socat
 sudo apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xcbcb082a1bb943db
 sudo add-apt-repository 'deb http://mirror.jmu.edu/pub/mariadb/repo/5.5/ubuntu precise main'
+
 sudo apt-get  -q -y update
 echo mariadb-galera-server-5.5 mysql-server/root_password password root | debconf-set-selections
 echo mariadb-galera-server-5.5 mysql-server/root_password_again password root | debconf-set-selections
+
 LC_ALL=en_US.utf8 DEBIAN_FRONTEND=noninteractive sudo apt-get -o Dpkg::Options::='--force-confnew' -qqy install mariadb-galera-server galera mariadb-client
+
+gpg --keyserver hkp://keys.gnupg.net --recv-keys 1C4CBDCDCD2EFD2A
+gpg -a --export CD2EFD2A | sudo apt-key add -
+sudo add-apt-repository 'deb http://repo.percona.com/apt precise main'
+sudo apt-get  -q -y update
+sudo apt-get -qqy install percona-xtrabackup
 
 echo "[mysqld]
 wsrep_provider=/usr/lib/galera/libgalera_smm.so
 wsrep_cluster_name=ma_cluster
 wsrep_cluster_address="gcomm://#{node_addresses.join(',')}"
 wsrep_slave_threads=2
-wsrep_sst_method=rsync
+wsrep_sst_method=xtrabackup
 wsrep_sst_auth=galera:galera
 wsrep_node_address=#{hostaddr}" > /etc/mysql/conf.d/galera.cnf
 
