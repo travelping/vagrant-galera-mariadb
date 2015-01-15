@@ -26,12 +26,14 @@ end
 def provision_node(hostaddr, node_addresses)
     setup = <<-SCRIPT
 sudo apt-get  -q -y update
-sudo apt-get  -q -y install python-software-properties vim curl wget rsync tmux
+sudo apt-get  -q -y install python-software-properties vim curl wget tmux socat
 sudo apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xcbcb082a1bb943db
 sudo add-apt-repository 'deb http://mirror.jmu.edu/pub/mariadb/repo/5.5/ubuntu precise main'
+
 sudo apt-get  -q -y update
 echo mariadb-galera-server-5.5 mysql-server/root_password password root | debconf-set-selections
 echo mariadb-galera-server-5.5 mysql-server/root_password_again password root | debconf-set-selections
+
 LC_ALL=en_US.utf8 DEBIAN_FRONTEND=noninteractive sudo apt-get -o Dpkg::Options::='--force-confnew' -qqy install mariadb-galera-server galera mariadb-client
 
 echo "[mysqld]
@@ -39,8 +41,9 @@ wsrep_provider=/usr/lib/galera/libgalera_smm.so
 wsrep_cluster_name=ma_cluster
 wsrep_cluster_address="gcomm://#{node_addresses.join(',')}"
 wsrep_slave_threads=2
-wsrep_sst_method=rsync
-wsrep_sst_auth=galera:galera
+wsrep_sst_method=mysqldump
+wsrep_sst_auth=root:root
+wsrep_sst_receive_address=#{hostaddr}
 wsrep_node_address=#{hostaddr}" > /etc/mysql/conf.d/galera.cnf
 
 echo "[client]
@@ -100,10 +103,6 @@ innodb_file_per_table   = 1
 innodb_open_files   = 1000
 innodb_io_capacity  = 1000
 innodb_flush_method = O_DIRECT
-[mysqldump]
-quick
-quote-names
-max_allowed_packet  = 16M
 [isamchk]
 key_buffer      = 16M
 !includedir /etc/mysql/conf.d/" > /etc/mysql/my.cnf
@@ -122,6 +121,7 @@ socket   = /var/run/mysqld/mysqld.sock
 basedir  = /usr" > /etc/mysql/debian.cnf
 
 mysql -u root -proot -e 'GRANT ALL PRIVILEGES on *.* TO "debian-sys-maint"@'localhost' IDENTIFIED BY "some_pwd" WITH GRANT OPTION; FLUSH PRIVILEGES;'
+mysql -u root -proot -e 'GRANT ALL ON *.* TO 'root'@"%" IDENTIFIED BY "root"'
 mysql -u root -proot -e 'CREATE DATABASE tetete;'
 
 sudo service mysql stop
