@@ -39,8 +39,9 @@ LC_ALL=en_US.utf8 DEBIAN_FRONTEND=noninteractive sudo apt-get -o Dpkg::Options::
 gpg --keyserver hkp://keys.gnupg.net --recv-keys 1C4CBDCDCD2EFD2A
 gpg -a --export CD2EFD2A | sudo apt-key add -
 sudo add-apt-repository 'deb http://repo.percona.com/apt precise main'
+sudo add-apt-repository -y ppa:vbernat/haproxy-1.5
 sudo apt-get  -q -y update
-sudo apt-get -qqy install percona-xtrabackup
+sudo apt-get -qqy install percona-xtrabackup haproxy
 
 echo "[mysqld]
 wsrep_provider=/usr/lib/galera/libgalera_smm.so
@@ -130,8 +131,45 @@ password = some_pwd
 socket   = /var/run/mysqld/mysqld.sock
 basedir  = /usr" > /etc/mysql/debian.cnf
 
+sudo echo "
+global
+        log 127.0.0.1   local0
+        log 127.0.0.1   local1 notice
+        chroot /var/lib/haproxy
+        stats socket /run/haproxy/admin.sock mode 660 level admin
+        stats timeout 30s
+        user haproxy
+        group haproxy
+        debug
+        daemon
+
+defaults
+        log     global
+        option tcplog
+        option redispatch
+        maxconn 2000
+        retries 3
+        timeout connect 3000
+        timeout client  5000
+        timeout server  5000
+
+listen mysql-cluster #{hostaddr}:3307
+    mode tcp
+    option mysql-check user ha_chk
+    balance roundrobin
+    server m1 192.168.100.101:3306 check
+    server m2 192.168.100.102:3306 check
+    server m3 192.168.100.103:3306 check
+listen #{hostaddr}:8080
+    mode http
+    stats enable
+    stats uri /
+    stats realm Strictly\ Private
+    stats auth admin:admin" > /etc/haproxy/haproxy.cfg
+
 mysql -u root -proot -e 'GRANT ALL PRIVILEGES on *.* TO "debian-sys-maint"@'localhost' IDENTIFIED BY "some_pwd" WITH GRANT OPTION; FLUSH PRIVILEGES;'
 mysql -u root -proot -e 'CREATE DATABASE tetete;'
+mysql -uroot -proot -e "INSERT INTO mysql.user (Host,User) values ('%','ha_chk'); FLUSH PRIVILEGES;"
 
 sudo service mysql stop
 sleep 5
@@ -142,14 +180,15 @@ def start_cluster()
     ret = <<-SCRIPT
 sudo service mysql start --wsrep-new-cluster
 sleep 10
-mysql -u root -proot -e 'GRANT ALL ON *.* TO 'galera'@'localhost' IDENTIFIED BY "galera"'
-mysql -u root -proot -e 'GRANT ALL ON *.* TO 'galera'@"%" IDENTIFIED BY "galera"'
+mysql -uroot -proot -e 'GRANT ALL ON *.* TO 'galera'@'localhost' IDENTIFIED BY "galera"'
+mysql -uroot -proot -e 'GRANT ALL ON *.* TO 'galera'@"%" IDENTIFIED BY "galera"'
+sudo service haproxy start
     SCRIPT
 end
 
 def attachnode()
     ret = <<-SCRIPT
-nohup bash -c 'sleep 30;sudo service mysql start' > /home/vagrant/nohup.out &
+nohup bash -c 'sleep 30;sudo service mysql start;sudo service haproxy start' > /home/vagrant/nohup.out &
     SCRIPT
 end
 
