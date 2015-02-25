@@ -28,11 +28,11 @@ def provision_node(hostaddr, node_addresses)
 sudo apt-get  -q -y update
 sudo apt-get  -q -y install python-software-properties vim curl wget tmux socat
 sudo apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xcbcb082a1bb943db
-sudo add-apt-repository 'deb http://mirror.jmu.edu/pub/mariadb/repo/5.5/ubuntu precise main'
+sudo add-apt-repository 'deb http://ftp.osuosl.org/pub/mariadb/repo/10.0/ubuntu precise main'
 
 sudo apt-get  -q -y update
-echo mariadb-galera-server-5.5 mysql-server/root_password password root | debconf-set-selections
-echo mariadb-galera-server-5.5 mysql-server/root_password_again password root | debconf-set-selections
+echo mariadb-galera-server-10.0 mysql-server/root_password password root | debconf-set-selections
+echo mariadb-galera-server-10.0 mysql-server/root_password_again password root | debconf-set-selections
 
 LC_ALL=en_US.utf8 DEBIAN_FRONTEND=noninteractive sudo apt-get -o Dpkg::Options::='--force-confnew' -qqy install mariadb-galera-server galera mariadb-client
 
