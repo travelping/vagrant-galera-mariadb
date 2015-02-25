@@ -159,13 +159,7 @@ listen mysql-cluster #{hostaddr}:3307
     balance roundrobin
     server m1 192.168.100.101:3306 check
     server m2 192.168.100.102:3306 check
-    server m3 192.168.100.103:3306 check
-listen #{hostaddr}:8080
-    mode http
-    stats enable
-    stats uri /
-    stats realm Strictly\ Private
-    stats auth admin:admin" > /etc/haproxy/haproxy.cfg
+    server m3 192.168.100.103:3306 check" > /etc/haproxy/haproxy.cfg
 
 mysql -u root -proot -e 'GRANT ALL PRIVILEGES on *.* TO "debian-sys-maint"@'localhost' IDENTIFIED BY "some_pwd" WITH GRANT OPTION; FLUSH PRIVILEGES;'
 mysql -u root -proot -e 'CREATE DATABASE tetete;'
