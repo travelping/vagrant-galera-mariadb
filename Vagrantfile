@@ -8,7 +8,7 @@ FROM_IP = "192.168.100.101"
 ALL_NODES_IN_CLUSTER = ["192.168.100.101","192.168.100.102","192.168.100.103"]
 
 #spetial NW settings
-INTERFACE_PREFFIX = "eth"
+INTERFACE_PREFIX = "eth"
 START_INTERFACE_ID = 1
 HOSTNAME_PREF = 'h'
 
@@ -18,32 +18,33 @@ def get_nodes (count, from_ip, hostname_pref)
     first_ip_part = "#{ip_arr[0]}.#{ip_arr[1]}.#{ip_arr[2]}"
     count.times do |i|
         hostname = "%s%01d" % [hostname_pref, (i+START_INTERFACE_ID)]
-        nodes.push([i+START_CLUSTER_ID, hostname, "#{first_ip_part}.#{ip_arr.last.to_i+i}", "#{INTERFACE_PREFFIX}#{i+START_INTERFACE_ID}"])
+        nodes.push([i+START_CLUSTER_ID, hostname, "#{first_ip_part}.#{ip_arr.last.to_i+i}", "#{INTERFACE_PREFIX}#{i+START_INTERFACE_ID}"])
     end
     nodes
 end
 
 def provision_node(hostaddr, node_addresses)
     setup = <<-SCRIPT
-sudo apt-get  -q -y update
-sudo apt-get  -q -y install python-software-properties vim curl wget tmux socat
-sudo apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xcbcb082a1bb943db
-sudo add-apt-repository 'deb http://ftp.osuosl.org/pub/mariadb/repo/10.0/ubuntu precise main'
+sudo apt-get -q -y update
+sudo apt-get -q -y install python-software-properties vim curl wget tmux socat software-properties-common haproxy
+sudo apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xF1656F24C74CD1D8
+sudo add-apt-repository 'deb [arch=amd64,i386,ppc64el] http://mirrors.coreix.net/mariadb/repo/10.1/ubuntu xenial main'
 
 sudo apt-get  -q -y update
-echo mariadb-galera-server-10.0 mysql-server/root_password password root | debconf-set-selections
-echo mariadb-galera-server-10.0 mysql-server/root_password_again password root | debconf-set-selections
+echo mariadb-server-10.1 mysql-server/root_password password root | debconf-set-selections
+echo mariadb-server-10.1 mysql-server/root_password_again password root | debconf-set-selections
 
-LC_ALL=en_US.utf8 DEBIAN_FRONTEND=noninteractive sudo apt-get -o Dpkg::Options::='--force-confnew' -qqy install mariadb-galera-server galera mariadb-client
+LC_ALL=en_US.utf8 DEBIAN_FRONTEND=noninteractive sudo apt-get -o Dpkg::Options::='--force-confnew' -qqy install mariadb-server galera-3 mariadb-client
 
 gpg --keyserver hkp://keys.gnupg.net --recv-keys 1C4CBDCDCD2EFD2A
 gpg -a --export CD2EFD2A | sudo apt-key add -
-sudo add-apt-repository 'deb http://repo.percona.com/apt precise main'
-sudo add-apt-repository -y ppa:vbernat/haproxy-1.5
-sudo apt-get  -q -y update
-sudo apt-get -qqy install percona-xtrabackup haproxy
+apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 8507EFA5
+sudo add-apt-repository 'deb http://repo.percona.com/apt xenial main'
+sudo apt-get -q -y update
+sudo apt-get -qqy install percona-xtrabackup
 
 echo "[mysqld]
+wsrep_on=ON
 wsrep_provider=/usr/lib/galera/libgalera_smm.so
 wsrep_cluster_name=ma_cluster
 wsrep_cluster_address="gcomm://#{node_addresses.join(',')}"
@@ -172,10 +173,10 @@ end
 
 def start_cluster()
     ret = <<-SCRIPT
-sudo service mysql start --wsrep-new-cluster
+sudo galera_new_cluster
 sleep 10
-mysql -uroot -proot -e 'GRANT ALL ON *.* TO 'galera'@'localhost' IDENTIFIED BY "galera"'
-mysql -uroot -proot -e 'GRANT ALL ON *.* TO 'galera'@"%" IDENTIFIED BY "galera"'
+mysql -uroot -proot -e 'GRANT ALL ON *.* TO "galera"@"localhost" IDENTIFIED BY "galera"'
+mysql -uroot -proot -e 'GRANT ALL ON *.* TO "galera"@"%" IDENTIFIED BY "galera"'
 sudo service haproxy start
     SCRIPT
 end
@@ -187,13 +188,14 @@ nohup bash -c 'sleep 30;sudo service mysql start;sudo service haproxy start' > /
 end
 
 Vagrant.configure("2") do |config|
-    config.vm.box = "hashicorp/precise64"
+    config.vm.box = "bento/ubuntu-16.04"
     config.ssh.username = "vagrant"
-    config.ssh.password = "vagrant"
-    config.ssh.shell = "bash -c 'BASH_ENV=/etc/profile exec bash'"
+    config.ssh.insert_key = true
+    config.ssh.forward_agent = true
     config.vm.provider "virtualbox" do |v|
       v.memory = 4096
       v.cpus = 1
+      v.customize ["modifyvm", :id, "--cableconnected1", "on"]
     end
     if Vagrant.has_plugin?("vagrant-cachier")
         config.cache.scope = :box
